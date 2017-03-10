@@ -16,14 +16,18 @@ def get_dataset_filenames():
     train_path = join(_path, _train_folder)
     file_names = []
     file_classes = []
+    val_file_names = []
+    val_file_classes = []
     for idx, current_class in enumerate(_classes):
         class_path = join(train_path, current_class)
         class_files = [join(class_path, file_name) for file_name in listdir(class_path)]
         class_files = [file_name for file_name in class_files if isfile(file_name) and file_name.endswith('.jpg')]
-        train_slice = int(len(class_files))
+        train_slice = int(len(class_files)*0.7)
         file_names += class_files[:train_slice]
         file_classes += [idx] * train_slice
-    return file_names, np.array(file_classes, np.int64)
+        val_file_names += class_files[train_slice:]
+        val_file_classes += [idx] * (len(class_files) - train_slice)
+    return file_names, np.array(file_classes, np.int64), val_file_names, np.array(val_file_classes,np.int64)
 
 def load_images_to_memory(file_names, shape=sc.size):
     batch_shape = (len(file_names),) + shape + (3,)
@@ -39,10 +43,12 @@ def load_images_to_memory(file_names, shape=sc.size):
     return data, masks
 
 
-files, classes = get_dataset_filenames()
+files, classes, val_files, val_classes = get_dataset_filenames()
 img, masks = load_images_to_memory(files)
-
-np.save(main_folder +'classAnnotation.npy', classes)
-np.save(main_folder +'images.npy', img)
-np.save(main_folder +'masks.npy', masks)
-
+val_img, val_masks = load_images_to_memory(val_files)
+np.save(main_folder +'Train_classes.npy', classes)
+np.save(main_folder +'val_classes.npy', val_classes)
+np.save(main_folder +'Train_images.npy', img)
+np.save(main_folder +'Train_masks.npy', masks)
+np.save(main_folder +'val_images.npy', val_img)
+np.save(main_folder +'val_masks.npy', val_masks)
