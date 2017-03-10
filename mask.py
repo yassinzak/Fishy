@@ -8,7 +8,7 @@ from os.path import join
 _classes = ['alb', 'bet', 'dol', 'lag', 'other', 'shark', 'yft']
 _json_path = 'C:/Datasets/Fisheries/train/Annotations'
 _image_path = 'C:/Datasets/Fisheries/train/ALL'
-win_size = (10, 10)
+win_size = (20, 20)
 image_size = sc.size
 
 def read_json():
@@ -29,11 +29,12 @@ def create_mask(name):
     w = []
     x = []
     y = []
-    for i in range(len(json_dic[name]['annotations'])):
-        h.append(json_dic[name]['annotations'][i]['height'])
-        w.append(json_dic[name]['annotations'][i]['width'])
-        x.append(json_dic[name]['annotations'][i]['x'])
-        y.append(json_dic[name]['annotations'][i]['y'])
+    if name in json_dic.keys():
+        for i in range(len(json_dic[name]['annotations'])):
+            h.append(json_dic[name]['annotations'][i]['height'])
+            w.append(json_dic[name]['annotations'][i]['width'])
+            x.append(json_dic[name]['annotations'][i]['x'])
+            y.append(json_dic[name]['annotations'][i]['y'])
     return preprocessing(h, w, x, y, name)
 
 def masking(height, width, fish_x, fish_y, name):
@@ -64,7 +65,7 @@ def preprocessing(height, width, fish_x, fish_y, name):
     for i in range(len(height)):
         img_mask += masking(height[i], width[i], fish_x[i], fish_y[i], name)
     #np.pad(img_mask, ((20, 20), (20, 20)), 'constant', constant_values=((0, 0), (0, 0)))
-    return img_mask.astype(bool).astype(float)
+    return img_mask.astype(bool)
 
 def mask_decode(mask):
     mask_image = np.zeros(shape=image_size, dtype=np.int32)
@@ -87,13 +88,13 @@ def image_segment(image,mask):
     return image * my_mask[:, :, None]
 
 
-my_mask = create_mask('img_00003.jpg')
-img = scipy.misc.imread(join(_image_path, 'img_00003.jpg'))
-img = scipy.misc.imresize(img, image_size)
+#my_mask = create_mask('img_00008.jpg')
+#img = scipy.misc.imread(join(_image_path, 'img_00008.jpg'))
+#img = scipy.misc.imresize(img, image_size)
 # mask_image = mask_decode(my_mask)
 # plt.imshow(img)
 # plt.imshow(mask_image, alpha=0.5)
 # plt.show()
-seg = image_segment(img, my_mask)
-plt.imshow(seg[:,:,:])
-plt.show()
+#seg = image_segment(img, my_mask)
+#plt.imshow(seg[:,:,:])
+#plt.show()
