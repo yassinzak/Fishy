@@ -116,7 +116,7 @@ def train():
                 feed_dict = {model.image: val_images[batch_start:batch_end] - image_mean,
                              model.true_class: val_true_classes[batch_start:batch_end],
                              model.is_training: False}
-                loss = sess.run([model.loss], feed_dict)
+                loss = sess.run(model.loss, feed_dict)
                 print('val epoch %i iteration %i, loss=%f' % (epoch, i, float(loss)), end='\r')
                 total_loss += float(loss) * (batch_end - batch_start)
             print('val epoch %i total results, loss=%f' % (epoch, total_loss/len(val_images)))
