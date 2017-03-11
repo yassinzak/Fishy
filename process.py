@@ -10,6 +10,20 @@ main_folder = "C:/Users/Yassin/PycharmProjects/FishyandTheGradDemons/"
 _classes = ['ALB', 'BET', 'DOL', 'LAG', 'NoF', 'OTHER', 'SHARK', 'YFT']
 _path = 'C:/Datasets/Fisheries/'
 _train_folder = 'train/'
+_test_folder = "C:/Datasets/Fisheries/test_stg1"
+
+def submission_data():
+    _test_names = [join(_test_folder, file_name) for file_name in listdir(_test_folder)]
+    _test_names = [file_name for file_name in _test_names if isfile(file_name)and file_name.endswith('.jpg')]
+    batch_shape = (len(_test_names),) + sc.size + (3,)
+    data = np.empty(batch_shape, dtype=np.uint8)
+    for idx, file_name in enumerate(_test_names):
+        img = scipy.misc.imread(file_name)
+        img = scipy.misc.imresize(img, sc.size)
+        data[idx] = img
+        print("Loaded %i/%i: %s" % (idx+1, len(_test_names), file_name), end='\r')
+    _test_file_names = [basename(file_name.replace('\\', '/')) for file_name in _test_names]
+    return data , _test_file_names
 
 
 def get_dataset_filenames():
@@ -31,7 +45,7 @@ def get_dataset_filenames():
 
 def load_images_to_memory(file_names, shape=sc.size):
     batch_shape = (len(file_names),) + shape + (3,)
-    mask_batch_shape = (len(file_names),) + (shape[0]-mask.win_size[0],shape[1]-mask.win_size[1])
+    mask_batch_shape = (len(file_names),) + (shape[0]-mask.win_size[0]+1, shape[1]-mask.win_size[1]+1)
     data = np.empty(batch_shape, dtype=np.uint8)
     masks = np.empty(mask_batch_shape, dtype=bool)
     for idx, file_name in enumerate(file_names):
@@ -43,12 +57,17 @@ def load_images_to_memory(file_names, shape=sc.size):
     return data, masks
 
 
+submission_img , submission_file_names = submission_data()
 files, classes, val_files, val_classes = get_dataset_filenames()
 img, masks = load_images_to_memory(files)
 val_img, val_masks = load_images_to_memory(val_files)
+
+
 np.save(main_folder +'Train_classes.npy', classes)
 np.save(main_folder +'val_classes.npy', val_classes)
 np.save(main_folder +'Train_images.npy', img)
 np.save(main_folder +'Train_masks.npy', masks)
 np.save(main_folder +'val_images.npy', val_img)
 np.save(main_folder +'val_masks.npy', val_masks)
+np.save(main_folder +'submission_img.npy', submission_img)
+np.save(main_folder +'submission_names.npy', submission_file_names)

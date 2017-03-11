@@ -44,8 +44,8 @@ def masking(height, width, fish_x, fish_y, name):
     h = height / scale[0]
     w = width / scale[1]
     fish_window = ((y, x), (y+h, x+w))
-    min_xs = np.arange(image_size[0] - win_size[0])
-    min_ys = np.arange(image_size[1] - win_size[1])
+    min_xs = np.arange(image_size[0] - win_size[0]+1)
+    min_ys = np.arange(image_size[1] - win_size[1]+1)
     max_xs = min_xs + win_size[0]
     max_ys = min_ys + win_size[1]
     int_min_xs = np.maximum(min_xs, fish_window[0][0])
@@ -60,8 +60,8 @@ def masking(height, width, fish_x, fish_y, name):
 
 def preprocessing(height, width, fish_x, fish_y, name):
     if not fish_x:
-        return np.zeros(shape=(image_size[0]-win_size[0], image_size[1]-win_size[1]), dtype=float)
-    img_mask = np.zeros(shape=(image_size[0]-win_size[0], image_size[1]-win_size[1]), dtype=float)
+        return np.zeros(shape=(image_size[0]-win_size[0]+1, image_size[1]-win_size[1]+1), dtype=float)
+    img_mask = np.zeros(shape=(image_size[0]-win_size[0]+1, image_size[1]-win_size[1]+1), dtype=float)
     for i in range(len(height)):
         img_mask += masking(height[i], width[i], fish_x[i], fish_y[i], name)
     #np.pad(img_mask, ((20, 20), (20, 20)), 'constant', constant_values=((0, 0), (0, 0)))
