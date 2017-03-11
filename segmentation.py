@@ -75,8 +75,13 @@ class Model(object):
         x = tf.squeeze(x, axis=-1)
         loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=self.true_class, logits=x, name="Loss")
         self.loss = tf.reduce_mean(loss, reduction_indices=[0, 1, 2])
-        self.score = tf.nn.sigmoid(x)
-
+        self.score = x > 0
+        mask_bool = tf.cast(self.true_class, tf.bool)
+        intersection = tf.cast(tf.logical_and(mask_bool, self.score), tf.float32)
+        union = tf.cast(tf.logical_or(mask_bool, self.score), tf.float32)
+        intersection = tf.reduce_sum(intersection, reduction_indices=[1, 2]) + 1e-12
+        union = tf.reduce_sum(union, reduction_indices=[1, 2]) + 1e-12
+        self.accuracy = tf.reduce_mean(intersection/union)
 
 def train():
     train_images, train_true_classes, val_images, val_true_classes = get_dataset()
@@ -92,12 +97,13 @@ def train():
     init_op = tf.global_variables_initializer()
     saver = tf.train.Saver()
     with tf.Session() as sess:
-        #saver.restore(sess, "logs/model")
-        sess.run(init_op)
+        saver.restore(sess, "logs/model")
+        #sess.run(init_op)
         for epoch in range(100):
             batch_order = np.arange(len(train_images))
             np.random.shuffle(batch_order)
             total_loss = 0
+            total_accuracy = 0
             for i in range(math.ceil(len(train_images)/batch_size)):
                 batch_start = i * batch_size
                 batch_end = min(len(train_images), batch_size + batch_start)
@@ -105,21 +111,26 @@ def train():
                 feed_dict = {model.image: train_images[batch_indices] - image_mean,
                              model.true_class: train_true_classes[batch_indices],
                              model.is_training: True}
-                loss,  _ = sess.run([model.loss,  train_ops], feed_dict)
-                print('epoch %i iteration %i, loss=%f' % (epoch, i, float(loss)), end='\r')
+                loss, accuracy, _ = sess.run([model.loss,model.accuracy,  train_ops], feed_dict)
+                print('epoch %i iteration %i, loss=%f, accuracy=%f' % (epoch, i, float(loss), float(accuracy)), end='\r')
                 total_loss += float(loss) * (batch_end - batch_start)
-            print('train epoch %i total results, loss=%f' % (epoch, total_loss / len(train_images)))
+                total_accuracy += float(accuracy) * (batch_end - batch_start)
+            print('train epoch %i total results, loss=%f , accuracy=%f' % (epoch, total_loss / len(train_images),
+                                                                           total_accuracy / len(train_images)))
             total_loss = 0
+            total_accuracy = 0
             for i in range(math.ceil(len(val_images)/batch_size)):
                 batch_start = i * batch_size
                 batch_end = min(len(val_images), batch_size + batch_start)
                 feed_dict = {model.image: val_images[batch_start:batch_end] - image_mean,
                              model.true_class: val_true_classes[batch_start:batch_end],
                              model.is_training: False}
-                loss = sess.run(model.loss, feed_dict)
-                print('val epoch %i iteration %i, loss=%f' % (epoch, i, float(loss)), end='\r')
+                loss, accuracy = sess.run([model.loss, model.accuracy], feed_dict)
+                print('val epoch %i iteration %i, loss=%f, accuracy=%f' % (epoch, i, float(loss), float(accuracy)), end='\r')
                 total_loss += float(loss) * (batch_end - batch_start)
-            print('val epoch %i total results, loss=%f' % (epoch, total_loss/len(val_images)))
+                total_accuracy += float(accuracy) * (batch_end - batch_start)
+            print('validation epoch %i total results, loss=%f , accuracy=%f' % (epoch, total_loss / len(train_images),
+                                                                                total_accuracy / len(train_images)))
             saver_path = saver.save(sess, "logs/model")
 
 
