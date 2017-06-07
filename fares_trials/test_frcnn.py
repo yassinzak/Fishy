@@ -7,12 +7,13 @@ import pdb
 import json
 import numpy as np
 import sys
-from keras_frcnn import config
 sys.path.insert(1, '/home/mh/opencv-master/build/lib/python3')
+from keras_frcnn import config
 import cv2
 
 sys.setrecursionlimit(40000)
 C = config.Config()
+C.num_rois = 2
 C.use_horizontal_flips = False
 C.use_vertical_flips = False
 
@@ -47,6 +48,12 @@ if 'bg' not in class_mapping:
 class_mapping = {v: k for k, v in class_mapping.items()}
 
 class_to_color = {class_mapping[v]:np.random.randint(0,255,3) for v in class_mapping}
+class_to_color['alb'] = (34, 139, 34)
+class_to_color['bet'] = (255,255,255)
+class_to_color['other'] = (112, 128, 144)
+class_to_color['shark'] = (255, 215, 0)
+class_to_color['yft'] = (142, 69, 133)
+class_to_color['lag'] = (27, 54, 212)
 num_rois = 16
 
 import keras_frcnn.resnet as nn
@@ -85,7 +92,7 @@ model_rpn = Model(img_input,rpn + [shared_layers])
 model_classifier = Model([feature_map_input,roi_input],classifier)
 
 # weights_path = 'model_frcnn.hdf5'
-weights_path = '/home/mh/ws/fish_challenge/input/models/frcnn_1_7_3epochs.h5'
+weights_path = 'model_frcnn.hdf5'
 
 model_rpn.load_weights(weights_path, by_name=True)
 model_classifier.load_weights(weights_path, by_name=True)
@@ -101,16 +108,14 @@ visualise = True
 
 print('Parsing annotation files')
 # img_path = sys.argv[1]
-img_path = '/home/mh/ws/fish_challenge/input/test_faster_rcnn'
+img_path = '/home/mh/ws/fish_challenge/input/test_stg1'
 bufsize = 0
 
 for idx,img_name in enumerate(sorted(os.listdir(img_path))):
 	print(img_name)
 	filepath = os.path.join(img_path,img_name)
 	img = cv2.imread(filepath)
-	print('test image shape is ')
-	print(img.shape)
-	b,g,r = cv2.split(img)
+
 	X = format_img(img)
 
 	img_scaled = np.transpose(X[0,(2,1,0),:,:],(1,2,0)).copy()
@@ -152,7 +157,6 @@ for idx,img_name in enumerate(sorted(os.listdir(img_path))):
 			ROIs = ROIs_padded
 
 		[P_cls, P_regr] = model_classifier.predict([F, ROIs])
-		# print(P_cls)
 		# print('Look up!!!!!!!!!')
 		P_regr = P_regr / C.std_scaling
 
@@ -162,7 +166,7 @@ for idx,img_name in enumerate(sorted(os.listdir(img_path))):
 				continue
 
 			cls_name = class_mapping[np.argmax(P_cls[0,ii,:])]
-			print(cls_name)
+			#print(cls_name)
 			if cls_name not in bboxes:
 				bboxes[cls_name] = []
 				probs[cls_name] = []
@@ -177,16 +181,16 @@ for idx,img_name in enumerate(sorted(os.listdir(img_path))):
 			probs[cls_name].append(np.max(P_cls[0, ii, :]))
 
 	all_dets = {}
-	print(np.array(bboxes).shape)
+	#print(np.array(bboxes).shape)
 	for key in bboxes:
 		bbox = np.array(bboxes[key])
-		print(bbox)
+		#pprint.pprint(bbox)
 		new_boxes, new_probs = roi_helpers.non_max_suppression_fast(bbox, np.array(probs[key]), overlapThresh=0.2)
 		for jk in range(new_boxes.shape[0]):
 			(x1,y1,x2,y2) = new_boxes[jk,:]
-			print('BOunding box ', x1,x2,y1,y2)
+			#print('Bounding box ', x1,x2,y1,y2)
 
-			cv2.rectangle(img_scaled,(x1, y1), (x2, y2), class_to_color[key],2)
+			cv2.rectangle(img_scaled,(x1, y1), (x2, y2), (int(class_to_color[key][0]),int(class_to_color[key][1]),int(class_to_color[key][2])),2)
 
 			textLabel = '{}:{}'.format(key,int(100*new_probs[jk]))
 			if key not in all_dets:
@@ -197,8 +201,8 @@ for idx,img_name in enumerate(sorted(os.listdir(img_path))):
 			(retval,baseLine) = cv2.getTextSize(textLabel,cv2.FONT_HERSHEY_COMPLEX,1,1)
 			textOrg = (x1,y1+20)
 
-			#cv2.rectangle(img_scaled,(textOrg[0] - 5,textOrg[1]+baseLine - 5),(textOrg[0]+retval[0] + 5,textOrg[1]-retval[1] - 5),(0,0,0),2)
-			#cv2.rectangle(img_scaled,(textOrg[0] - 5,textOrg[1]+baseLine - 5),(textOrg[0]+retval[0] + 5,textOrg[1]-retval[1] - 5),(255,255,255),-1)
-			#cv2.putText(img_scaled,textLabel,textOrg,cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,0),1)
+			cv2.rectangle(img_scaled,(textOrg[0] - 5,textOrg[1]+baseLine - 5),(textOrg[0]+retval[0] + 5,textOrg[1]-retval[1] - 5),(0,0,0),2)
+			cv2.rectangle(img_scaled,(textOrg[0] - 5,textOrg[1]+baseLine - 5),(textOrg[0]+retval[0] + 5,textOrg[1]-retval[1] - 5),(255,255,255),-1)
+			cv2.putText(img_scaled,textLabel,textOrg,cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,0),1)
 	cv2.imshow('img',img_scaled)
 	cv2.waitKey(0)

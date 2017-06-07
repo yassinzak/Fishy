@@ -3,7 +3,6 @@ sys.path.insert(1, '/home/mh/opencv-master/build/lib/python3')
 import cv2
 import numpy as np
 
-# input_file = sys.argv[1]
 def get_data(input_file):
 	found_bg = False
 	all_imgs = {}
@@ -65,3 +64,4 @@ def get_data(input_file):
 		return all_data,classes_count,class_mapping
 
 
+			
